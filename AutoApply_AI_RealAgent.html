@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoApply AI — Real Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090F;--bg2:#0C101A;--card:#111724;--card2:#161E2E;
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.12);
+  --g:#00D68F;--g2:#00A86B;--glow:rgba(0,214,143,.1);
+  --blue:#5B9CF6;--amber:#F0A500;--red:#F05252;--purple:#9B72F5;--teal:#26D4C8;
+  --t1:#EEF2FF;--t2:#7C8BAA;--t3:#3D4A5F;
+  --f:'Outfit',sans-serif;--m:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);overflow:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+a{color:var(--blue)}a:hover{text-decoration:underline}
+.app{display:flex;height:100vh}
+
+/* SIDEBAR */
+.side{width:215px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column}
+.brand{padding:16px 14px 12px;border-bottom:1px solid var(--b1)}
+.brand-row{font-size:14px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:7px}
+.bmark{width:24px;height:24px;background:var(--g);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.brand-row b{color:var(--g)}
+.bsub{margin-top:6px;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.dot.on{background:var(--g);box-shadow:0 0 7px var(--g);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.nav{flex:1;padding:8px 6px;overflow-y:auto}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--t2);transition:all .15s;margin-bottom:1px;border:1px solid transparent;user-select:none}
+.ni:hover{color:var(--t1);background:var(--card)}
+.ni.on{color:var(--g);background:var(--glow);border-color:rgba(0,214,143,.14)}
+.ni-i{font-size:13px;width:15px;text-align:center;flex-shrink:0}
+.nb{margin-left:auto;background:var(--g);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;font-family:var(--m);min-width:16px;text-align:center}
+.sfoot{padding:9px;border-top:1px solid var(--b1);display:flex;flex-direction:column;gap:5px}
+.chip{background:var(--card);border:1px solid var(--b2);border-radius:6px;padding:7px 8px}
+.chip-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:2px}
+.chip-val{font-size:10px;font-family:var(--m);color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-val.ok{color:var(--g)}
+.chip-val.bad{color:var(--red)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:13px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.tb-ttl{font-size:15px;font-weight:700}
+.tb-sub{font-size:11px;color:var(--t3);margin-top:1px}
+.tb-r{display:flex;gap:6px}
+.btn{padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;font-family:var(--f);transition:all .15s;border:1px solid var(--b2);background:var(--card);color:var(--t2);white-space:nowrap}
+.btn:hover{border-color:var(--g);color:var(--g)}
+.btn.go{background:var(--g);color:var(--bg);border-color:var(--g);font-weight:600}
+.btn.go:hover{background:var(--g2)}
+.btn.stop{background:rgba(240,82,82,.09);border-color:rgba(240,82,82,.25);color:var(--red)}
+
+.page{flex:1;overflow-y:auto;padding:16px 18px}
+.card{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:14px 16px}
+.ct{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin-bottom:9px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.fsb{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.st{font-size:12.5px;font-weight:600;color:var(--t1)}
+.sl{font-size:11px;color:var(--g);cursor:pointer}
+.sl:hover{text-decoration:underline}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.stat{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:12px 14px}
+.sn{font-size:24px;font-weight:800;font-family:var(--m);margin-bottom:2px}
+.cg{color:var(--g)}.cb{color:var(--blue)}.cp{color:var(--purple)}.ca{color:var(--amber)}
+.slbl{font-size:11px;color:var(--t2)}
+.ssub{font-size:10px;color:var(--t3);margin-top:2px;font-family:var(--m)}
+
+/* FEED */
+.feed{max-height:220px;overflow-y:auto}
+.fi{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid var(--b1)}
+.fi:last-child{border-bottom:none}
+.fd{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dg{background:var(--g)}.db{background:var(--blue)}.da{background:var(--amber)}.dr{background:var(--red)}.dt{background:var(--teal)}
+.ft{font-size:10px;color:var(--t3);font-family:var(--m);min-width:24px;flex-shrink:0;margin-top:2px}
+.fx{font-size:11.5px;color:var(--t2);line-height:1.45}
+.fx strong{color:var(--t1)}
+
+/* PLATFORM */
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.pi{background:var(--card2);border:1px solid var(--b1);border-radius:6px;padding:7px 8px;display:flex;align-items:center;gap:5px}
+.pn{font-size:11px;color:var(--t1);font-weight:500}
+.pc{font-size:10px;color:var(--t3);font-family:var(--m);margin-left:auto}
+
+/* JOB CARDS */
+.jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.jcard{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;transition:border-color .2s}
+.jcard:hover{border-color:var(--b2)}
+.jcard.hi{border-color:rgba(0,214,143,.2)}
+.jh{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px}
+.jico{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.ji{flex:1;min-width:0}
+.jtl{font-size:12.5px;font-weight:600;color:var(--t1);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jco{font-size:11px;color:var(--t2)}
+.mbadge{font-size:11px;font-weight:700;font-family:var(--m);padding:2px 7px;border-radius:5px;flex-shrink:0}
+.mhi{background:rgba(0,214,143,.1);color:var(--g)}
+.mmd{background:rgba(91,156,246,.1);color:var(--blue)}
+.mlo{background:rgba(240,165,0,.1);color:var(--amber)}
+.jtags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.tag{font-size:10px;padding:2px 6px;border-radius:99px;background:var(--card2);color:var(--t2);border:1px solid var(--b1)}
+.tag.live{background:rgba(0,214,143,.08);color:var(--g);border-color:rgba(0,214,143,.2)}
+.jdesc{font-size:11px;color:var(--t2);margin-bottom:7px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jrow{display:flex;gap:5px}
+.abtn{flex:1;padding:6px;border-radius:6px;background:var(--g);color:var(--bg);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .15s}
+.abtn:hover{background:var(--g2)}
+.abtn:disabled{background:var(--card2);color:var(--t3);cursor:not-allowed}
+.dbtn{padding:6px 9px;border-radius:6px;background:transparent;color:var(--t2);border:1px solid var(--b2);font-size:11px;cursor:pointer;font-family:var(--f)}
+.dbtn:hover{color:var(--t1)}
+
+/* STATUS BADGES */
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;font-family:var(--m)}
+.applied{background:rgba(0,214,143,.1);color:var(--g)}
+.interview{background:rgba(91,156,246,.1);color:var(--blue)}
+.offer{background:rgba(155,114,245,.1);color:var(--purple)}
+.rejected{background:rgba(240,82,82,.1);color:var(--red)}
+.packageready{background:rgba(38,212,200,.1);color:var(--teal)}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 9px;color:var(--t3);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--b2);background:var(--bg2);white-space:nowrap}
+td{padding:8px 9px;color:var(--t2);border-bottom:1px solid var(--b1);vertical-align:middle}
+tr:hover td{background:var(--card2)}
+.tbold{color:var(--t1);font-weight:500}
+.tmono{font-family:var(--m)}
+.shi{color:var(--g);font-weight:700;font-family:var(--m)}
+.smd{color:var(--blue);font-weight:700;font-family:var(--m)}
+.tl{color:var(--blue);cursor:pointer;font-size:11px}
+.tl:hover{text-decoration:underline}
+
+/* FORM */
+.fg{margin-bottom:10px}
+.fl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.fh{font-weight:400;text-transform:none;letter-spacing:0;font-size:10px}
+.inp{width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--t1);font-family:var(--f);outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--g)}
+.inp::placeholder{color:var(--t3)}
+textarea.inp{resize:vertical;min-height:130px;font-size:11px;font-family:var(--m);line-height:1.55}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pill-row{display:flex;flex-wrap:wrap;gap:5px}
+.pill{padding:5px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--card2);cursor:pointer;font-size:12px;color:var(--t2);transition:all .15s;user-select:none}
+.pill:hover{color:var(--t1)}
+.pill.on{border-color:rgba(0,214,143,.3);background:var(--glow);color:var(--g)}
+.upload-z{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1px dashed var(--b2);border-radius:7px;cursor:pointer;font-size:12px;color:var(--t2);transition:all .15s;margin-top:6px;position:relative}
+.upload-z:hover{border-color:var(--g);color:var(--g)}
+.upload-z input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.fstat{font-size:10px;margin-top:4px;font-family:var(--m);min-height:13px;color:var(--t3)}
+.fstat.ok{color:var(--g)}.fstat.err{color:var(--red)}
+.api-row{position:relative}
+.api-row .inp{padding-right:38px;font-family:var(--m);font-size:12px;letter-spacing:.04em}
+.eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:3px}
+.eye:hover{color:var(--t1)}
+.sbtn{width:100%;padding:11px;border-radius:9px;background:var(--g);color:var(--bg);border:none;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--f);transition:all .18s;margin-top:11px}
+.sbtn:hover{background:var(--g2);transform:translateY(-1px)}
+.sbtn.stop{background:rgba(240,82,82,.1);color:var(--red);border:1px solid rgba(240,82,82,.25)}
+.sbtn.stop:hover{background:rgba(240,82,82,.2);transform:none}
+
+/* FILTER */
+.fbar{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.ftag{padding:4px 10px;border-radius:99px;border:1px solid var(--b2);background:transparent;color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--f);transition:all .15s}
+.ftag:hover{color:var(--t1)}
+.ftag.on{background:var(--glow);border-color:rgba(0,214,143,.22);color:var(--g)}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--b2);border-radius:13px;width:580px;max-width:93vw;max-height:88vh;overflow-y:auto;padding:19px}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mttl{font-size:14px;font-weight:700}
+.mx{background:transparent;border:1px solid var(--b2);color:var(--t2);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px;font-family:var(--f)}
+.mx:hover{color:var(--t1)}
+.msec{margin-bottom:11px}
+.mst{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:6px}
+.mbx{font-size:11.5px;color:var(--t2);line-height:1.65;background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:10px;font-family:var(--m);white-space:pre-wrap;max-height:190px;overflow-y:auto}
+.sw{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+.sbig{font-size:34px;font-weight:800;font-family:var(--m)}
+.srec{font-size:11px;color:var(--t2);max-width:240px;text-align:right;line-height:1.4}
+.sbar{height:4px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:4px}
+.sfill{height:100%;border-radius:99px;transition:width 1.3s}
+.pt{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:11.5px}
+.pdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.mbtns{display:flex;gap:6px;margin-top:11px}
+.mbtn{flex:1;padding:9px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--f);border:none;transition:all .15s;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;text-decoration:none}
+.mbtn.ok{background:var(--g);color:var(--bg)}
+.mbtn.ok:hover{background:var(--g2)}
+.mbtn.bl{background:rgba(91,156,246,.15);color:var(--blue);border:1px solid rgba(91,156,246,.25)}
+.mbtn.bl:hover{background:rgba(91,156,246,.25)}
+.mbtn.no{background:var(--card2);color:var(--t2);border:1px solid var(--b2)}
+.mbtn.no:hover{color:var(--t1)}
+
+/* APPLY PACKAGE */
+.pkg{background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.pkg-ttl{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:7px}
+.pkg-step{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--b1)}
+.pkg-step:last-child{border-bottom:none}
+.pkg-n{width:18px;height:18px;border-radius:50%;background:var(--glow);border:1px solid rgba(0,214,143,.25);color:var(--g);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--m)}
+.pkg-t{font-size:12px;color:var(--t2);line-height:1.45;flex:1}
+.pkg-t strong{color:var(--t1)}
+.pka{padding:4px 9px;border-radius:5px;border:1px solid var(--b2);background:transparent;color:var(--g);font-size:11px;cursor:pointer;font-family:var(--f);white-space:nowrap;flex-shrink:0;transition:all .15s}
+.pka:hover{background:var(--glow);border-color:rgba(0,214,143,.3)}
+.pka.ext{color:var(--blue);border-color:rgba(91,156,246,.2);text-decoration:none;display:inline-flex;align-items:center}
+.pka.ext:hover{background:rgba(91,156,246,.1)}
+
+/* KEY SETUP BANNER */
+.key-setup{background:rgba(240,165,0,.07);border:1px solid rgba(240,165,0,.2);border-radius:9px;padding:13px 15px;margin-bottom:12px}
+.key-setup-ttl{font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.key-setup-body{font-size:12px;color:var(--t2);line-height:1.65}
+.key-steps{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.key-step{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t2)}
+.key-step-n{color:var(--amber);font-weight:700;font-family:var(--m);flex-shrink:0}
+.key-ok{background:rgba(0,214,143,.07);border:1px solid rgba(0,214,143,.18);border-radius:9px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--g)}
+
+/* MISC */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--b2);border-top-color:var(--g);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:46px 16px;color:var(--t3)}
+.empty .ei{font-size:30px;margin-bottom:7px;opacity:.5}
+.empty .et{font-size:13px;color:var(--t2);margin-bottom:3px}
+.empty .es{font-size:11px}
+.toast{position:fixed;bottom:14px;right:14px;background:var(--card);border:1px solid var(--g);border-radius:9px;padding:9px 13px;font-size:12px;color:var(--t1);z-index:200;animation:pop .2s ease;max-width:290px;pointer-events:none}
+@keyframes pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.fa{animation:fa .22s ease}
+@keyframes fa{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.xbtn{width:100%;padding:11px;border-radius:9px;background:#1B9463;color:#fff;border:none;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--f);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.xbtn:hover{background:#136B48}
+.xbtn:disabled{background:var(--card2);color:var(--t3);cursor:not-allowed}
+.src-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--b2);color:var(--teal);background:rgba(38,212,200,.08);margin-left:4px}
+.infonote{font-size:11px;color:var(--t2);line-height:1.6;background:rgba(91,156,246,.06);border:1px solid rgba(91,156,246,.15);border-radius:7px;padding:9px 11px;margin-top:8px}
+.copied{color:var(--g)!important;border-color:rgba(0,214,143,.3)!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="side">
+  <div class="brand">
+    <div class="brand-row"><div class="bmark">⚡</div>Auto<b>Apply</b> AI</div>
+    <div class="bsub"><div class="dot" id="dot"></div><span id="stxt">Agent idle</span></div>
+  </div>
+  <nav class="nav">
+    <div class="ni on" id="n-dash"  onclick="go('dash')"><span class="ni-i">◈</span>Dashboard</div>
+    <div class="ni" id="n-setup"    onclick="go('setup')"><span class="ni-i">⚙</span>Setup</div>
+    <div class="ni" id="n-jobs"     onclick="go('jobs')"><span class="ni-i">◎</span>Job Matches<span class="nb" id="jb">0</span></div>
+    <div class="ni" id="n-apps"     onclick="go('apps')"><span class="ni-i">✦</span>Applications<span class="nb" id="ab">0</span></div>
+    <div class="ni" id="n-xls"      onclick="go('xls')"><span class="ni-i">↓</span>Export Excel</div>
+  </nav>
+  <div class="sfoot">
+    <div class="chip">
+      <div class="chip-lbl">Gemini AI</div>
+      <div class="chip-val" id="keyChip" style="color:var(--red)">Key not set</div>
+    </div>
+    <div class="chip">
+      <div class="chip-lbl">Resume</div>
+      <div class="chip-val" id="rchip">Not uploaded</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-ttl" id="ptitle">Dashboard</div>
+      <div class="tb-sub" id="psub">Real jobs · Real AI · Totally free</div>
+    </div>
+    <div class="tb-r">
+      <button class="btn" onclick="go('setup')">⚙ Setup</button>
+      <button class="btn go" id="agentBtn" onclick="toggleAgent()">▶ Start Agent</button>
+    </div>
+  </div>
+  <div class="page" id="page"></div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" style="display:none" onclick="closeBg(event)">
+  <div class="modal">
+    <div class="mh"><div class="mttl" id="mtitle">—</div><button class="mx" onclick="closeModal()">✕</button></div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   STATE
+================================================================ */
+const S = {
+  geminiKey: '',
+  resume: '', fname: 'Not uploaded',
+  role: '', loc: 'Remote', smin: 50000, smax: 200000, thresh: 65,
+  sources: ['RemoteOK', 'Arbeitnow', 'TheMuse'],
+  jobs: [], apps: [], log: [],
+  running: false, page: 'dash', jf: 'all', af: 'all'
+};
+
+const META = {
+  dash:  ['Dashboard', 'Real jobs · Real AI · Totally free'],
+  setup: ['Setup Agent', 'Configure resume, role, and free Gemini AI key'],
+  jobs:  ['Job Matches', 'Real live jobs scored against your resume by AI'],
+  apps:  ['Applications', 'Every application package tracked — update as you hear back'],
+  xls:   ['Export Excel', 'Download your complete application tracker'],
+};
+
+const COL = [
+  {b:'rgba(91,156,246,.13)',c:'#5B9CF6'},{b:'rgba(0,214,143,.1)',c:'#00D68F'},
+  {b:'rgba(155,114,245,.12)',c:'#9B72F5'},{b:'rgba(240,165,0,.11)',c:'#F0A500'},
+  {b:'rgba(240,82,82,.1)',c:'#F05252'},{b:'rgba(38,212,200,.1)',c:'#26D4C8'},
+];
+
+const SRC_COLORS = {
+  'RemoteOK': '#00D68F', 'Arbeitnow': '#5B9CF6', 'TheMuse': '#9B72F5'
+};
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+let _t = null;
+function toast(msg, col = 'var(--g)') {
+  if (_t) _t.remove();
+  _t = document.createElement('div');
+  _t.className = 'toast'; _t.style.borderColor = col; _t.textContent = msg;
+  document.body.appendChild(_t);
+  setTimeout(() => { if (_t) { _t.style.opacity = '0'; _t.style.transition = 'opacity .3s'; setTimeout(() => { if (_t) { _t.remove(); _t = null; } }, 300); } }, 3200);
+}
+
+function ago(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  return s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + 'm' : Math.floor(s / 3600) + 'h';
+}
+function fdt(ts) { return new Date(ts).toLocaleDateString(); }
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+function ini(s) { return (s || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'; }
+
+function copyTxt(txt, btn) {
+  const cb = () => { toast('Copied!'); if (btn) { const o = btn.textContent; btn.textContent = '✓ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = o; btn.classList.remove('copied'); }, 1800); } };
+  if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(cb).catch(() => { fbCopy(txt); cb(); }); }
+  else { fbCopy(txt); cb(); }
+}
+function fbCopy(txt) {
+  const ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select(); try { document.execCommand('copy'); } catch (e) { } ta.remove();
+}
+
+function addLog(txt, c = 'g') {
+  S.log.unshift({ txt, c, ts: Date.now() });
+  if (S.log.length > 80) S.log.pop();
+  refreshFeed();
+}
+function refreshFeed() {
+  const el = document.getElementById('feedEl'); if (!el) return;
+  if (!S.log.length) { el.innerHTML = '<div style="text-align:center;padding:22px;color:var(--t3);font-size:11px">Agent feed will appear here once started.</div>'; return; }
+  el.innerHTML = S.log.slice(0, 22).map(l => `<div class="fi fa"><div class="fd d${l.c}"></div><div class="ft">${ago(l.ts)}</div><div class="fx">${l.txt}</div></div>`).join('');
+}
+
+/* ================================================================
+   NAVIGATION
+================================================================ */
+function go(p) {
+  S.page = p;
+  document.querySelectorAll('.ni').forEach(e => e.classList.remove('on'));
+  const el = document.getElementById('n-' + p); if (el) el.classList.add('on');
+  const [t, s] = META[p];
+  document.getElementById('ptitle').textContent = t;
+  document.getElementById('psub').textContent = s;
+  draw(p);
+}
+function draw(p) {
+  const c = document.getElementById('page');
+  if (p === 'dash') { c.innerHTML = drawDash(); refreshFeed(); }
+  else if (p === 'setup') c.innerHTML = drawSetup();
+  else if (p === 'jobs') c.innerHTML = drawJobs();
+  else if (p === 'apps') c.innerHTML = drawApps();
+  else if (p === 'xls') c.innerHTML = drawXls();
+}
+
+/* ================================================================
+   DASHBOARD
+================================================================ */
+function drawDash() {
+  const n = S.apps.length, iv = S.apps.filter(a => a.status === 'Interview').length,
+    of = S.apps.filter(a => a.status === 'Offer').length,
+    avg = n ? Math.round(S.apps.reduce((s, a) => s + a.score, 0) / n) : 0;
+  const pc = {}; S.apps.forEach(a => { pc[a.src] = (pc[a.src] || 0) + 1; });
+  const rec = S.apps.slice(-5).reverse();
+  return `
+  <div class="stats">
+    <div class="stat"><div class="sn cg">${S.jobs.length}</div><div class="slbl">Real Jobs Found</div><div class="ssub">${S.running ? 'fetching live…' : '—'}</div></div>
+    <div class="stat"><div class="sn cb">${n}</div><div class="slbl">Packages Ready</div><div class="ssub">${n ? 'ready to apply' : '—'}</div></div>
+    <div class="stat"><div class="sn cp">${iv}</div><div class="slbl">Interviews</div><div class="ssub">${iv ? 'in progress' : '—'}</div></div>
+    <div class="stat"><div class="sn ca">${of ? of : avg ? avg + '%' : '—'}</div><div class="slbl">${of ? 'Offers' : 'Avg Match'}</div><div class="ssub">${of ? '🎉' : avg ? 'AI score' : '—'}</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="fsb"><span class="st">Live Agent Feed</span><span class="sl" onclick="go('setup')">Configure →</span></div>
+      <div class="feed" id="feedEl"></div>
+    </div>
+    <div class="card">
+      <div class="fsb"><span class="st">Recent Packages</span><span class="sl" onclick="go('apps')">View all →</span></div>
+      ${!rec.length ? `<div class="empty" style="padding:20px 8px"><div class="ei">📭</div><div class="et">No packages yet</div><div class="es">Start the agent to begin</div></div>` : ''}
+      ${rec.map(a => { const lc = COL[a.id % COL.length]; return `<div class="fi" style="padding:6px 0">
+        <div style="width:26px;height:26px;border-radius:5px;background:${lc.b};color:${lc.c};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${ini(a.company)}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--t1)">${a.role}</div><div style="font-size:11px;color:var(--t2)">${a.company} <span style="color:${SRC_COLORS[a.src]||'var(--t3)'}">·${a.src}</span></div></div>
+        <div style="text-align:right;flex-shrink:0"><span class="badge ${(a.status || 'packageready').toLowerCase().replace(/ /g, '')}">${a.status}</span><div style="font-size:10px;color:var(--t3);font-family:var(--m);margin-top:2px">${a.score}%</div></div>
+      </div>`;}).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="st" style="margin-bottom:8px">Live Job Sources</div>
+    <div class="pg">
+      ${['RemoteOK', 'Arbeitnow', 'TheMuse'].map(s => `<div class="pi">
+        <div class="fd" style="width:7px;height:7px;border-radius:50%;background:${(pc[s] || 0) ? SRC_COLORS[s] : 'var(--t3)'};flex-shrink:0"></div>
+        <div class="pn">${s}</div><div class="pc">${pc[s] || 0} sent</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   SETUP
+================================================================ */
+function drawSetup() {
+  const keySet = !!S.geminiKey;
+  return `
+  ${!keySet ? `
+  <div class="key-setup">
+    <div class="key-setup-ttl">🔑 Get Your Free Gemini AI Key (takes 2 minutes)</div>
+    <div class="key-setup-body">Google Gemini is completely free — no credit card, no trial, no expiry. You get 1,500 AI requests per day free forever.</div>
+    <div class="key-steps">
+      <div class="key-step"><span class="key-step-n">1.</span><span>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></span></div>
+      <div class="key-step"><span class="key-step-n">2.</span><span>Sign in with your Google account (Gmail works)</span></div>
+      <div class="key-step"><span class="key-step-n">3.</span><span>Click <strong style="color:var(--t1)">"Create API key"</strong> → copy the key</span></div>
+      <div class="key-step"><span class="key-step-n">4.</span><span>Paste it in the field below</span></div>
+    </div>
+  </div>` : `<div class="key-ok">✓ Gemini AI key saved — fully free AI active (1,500 req/day) <span style="margin-left:auto;font-size:11px;color:var(--t3);cursor:pointer" onclick="S.geminiKey='';updateKeyChip();draw('setup')">Remove</span></div>`}
+
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Your Resume</div>
+      <div class="fg">
+        <label class="fl">Paste resume text <span class="fh">Memory only — never stored anywhere</span></label>
+        <textarea class="inp" id="rta" placeholder="Paste your full resume here: skills, experience, education, contact…">${S.resume}</textarea>
+      </div>
+      <div class="upload-z">
+        <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="loadFile(event)">
+        📎 Upload resume (.pdf · .txt · .doc)
+      </div>
+      <div class="fstat" id="fstat">${S.fname !== 'Not uploaded' ? '✓ ' + S.fname : ''}</div>
+      ${S.resume ? `<div style="font-size:10px;color:var(--t3);margin-top:3px;font-family:var(--m)">${S.resume.length.toLocaleString()} chars loaded</div>` : ''}
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="ct">Free Gemini AI Key</div>
+        <div class="fg" style="margin-bottom:6px">
+          <div class="api-row">
+            <input class="inp" type="password" id="keyinp" placeholder="AIzaSy… (get free at aistudio.google.com)" value="${S.geminiKey}" autocomplete="off" oninput="S.geminiKey=this.value.trim();updateKeyChip()">
+            <button class="eye" id="eyeBtn" onclick="toggleEye()">👁</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);line-height:1.6">
+          Free forever: 15 requests/min · 1,500 requests/day · No CC needed<br>
+          Stored in browser tab memory only — wiped when tab closes.
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Role & Preferences</div>
+        <div class="fg"><label class="fl">Target Job Title</label>
+          <input class="inp" id="roleinp" placeholder="e.g. Software Engineer, Data Analyst, UX Designer…" value="${S.role}"></div>
+        <div class="fr2">
+          <div class="fg"><label class="fl">Min Salary ($)</label><input class="inp" type="number" id="smin" value="${S.smin}"></div>
+          <div class="fg"><label class="fl">Max Salary ($)</label><input class="inp" type="number" id="smax" value="${S.smax}"></div>
+        </div>
+        <div class="fg"><label class="fl">Location / Preference</label>
+          <input class="inp" id="locinp" placeholder="Remote · New York · London · Bangalore…" value="${S.loc}"></div>
+        <div class="fg">
+          <label class="fl">Min Match Score <span id="tlbl" style="color:var(--g);font-family:var(--m)">${S.thresh}%</span></label>
+          <input type="range" min="30" max="95" value="${S.thresh}" style="width:100%;accent-color:var(--g);margin-top:3px" oninput="S.thresh=+this.value;document.getElementById('tlbl').textContent=this.value+'%'">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:3px"><span>30%</span><span>Generate package above this</span><span>95%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:9px">
+    <div class="ct">Job Sources — Real live boards (all free, no auth)</div>
+    <div class="pill-row">
+      <div class="pill on" style="border-color:rgba(0,214,143,.3);background:rgba(0,214,143,.08);color:var(--g)">✓ RemoteOK — Remote tech jobs</div>
+      <div class="pill on" style="border-color:rgba(91,156,246,.3);background:rgba(91,156,246,.08);color:var(--blue)">✓ Arbeitnow — Tech &amp; dev jobs worldwide</div>
+      <div class="pill on" style="border-color:rgba(155,114,245,.3);background:rgba(155,114,245,.08);color:var(--purple)">✓ The Muse — All industries worldwide</div>
+    </div>
+    <div class="infonote" style="margin-top:8px">These APIs are public and free — no signup needed. Jobs fetched are <strong>real, live listings</strong> from these boards.</div>
+  </div>
+  <button class="sbtn ${S.running ? 'stop' : ''}" onclick="saveRun()">${S.running ? '⏹ Stop Agent' : '⚡ Save & Start Agent'}</button>`;
+}
+
+function toggleEye() {
+  const i = document.getElementById('keyinp'), b = document.getElementById('eyeBtn');
+  if (!i) return; i.type = i.type === 'password' ? 'text' : 'password'; if (b) b.textContent = i.type === 'password' ? '👁' : '🙈';
+}
+
+function updateKeyChip() {
+  const el = document.getElementById('keyChip'); if (!el) return;
+  if (S.geminiKey) { el.textContent = S.geminiKey.slice(0, 8) + '••••' + S.geminiKey.slice(-4); el.style.color = 'var(--g)'; }
+  else { el.textContent = 'Key not set'; el.style.color = 'var(--red)'; }
+}
+
+/* ================================================================
+   FILE LOAD (PDF + TXT)
+================================================================ */
+function setFS(msg, cls = '') { const el = document.getElementById('fstat'); if (el) { el.textContent = msg; el.className = 'fstat' + (cls ? ' ' + cls : ''); } }
+
+async function loadFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  setFS('Reading ' + f.name + '…');
+  try {
+    let txt = '';
+    if (f.name.toLowerCase().endsWith('.pdf')) txt = await parsePDF(f);
+    else txt = await f.text();
+    txt = txt.trim();
+    if (!txt || txt.length < 20) throw new Error('File appears empty.');
+    S.resume = txt; S.fname = f.name;
+    const ta = document.getElementById('rta'); if (ta) ta.value = txt;
+    document.getElementById('rchip').textContent = f.name;
+    setFS('✓ ' + f.name + ' — ' + (txt.length / 1024).toFixed(1) + ' KB', 'ok');
+    toast('Resume loaded: ' + f.name);
+  } catch (err) { setFS('⚠ ' + err.message, 'err'); toast(err.message, 'var(--red)'); }
+}
+
+async function parsePDF(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('PDF parser load failed — check internet.'));
+      document.head.appendChild(s);
+    });
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const pg = await pdf.getPage(i);
+    const ct = await pg.getTextContent();
+    let line = '', lastY = null;
+    ct.items.forEach(item => {
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) { out += line.trim() + '\n'; line = ''; }
+      line += item.str + (item.hasEOL ? ' ' : ' ');
+      lastY = item.transform[5];
+    });
+    out += line.trim() + '\n';
+  }
+  out = out.replace(/\n{3,}/g, '\n\n').trim();
+  if (!out || out.length < 30) throw new Error('No text in PDF — may be scanned. Paste text manually.');
+  return out;
+}
+
+/* ================================================================
+   SAVE & VALIDATE
+================================================================ */
+function saveRun() {
+  const ta = document.getElementById('rta'); if (ta) S.resume = ta.value.trim();
+  const ri = document.getElementById('roleinp'); if (ri) S.role = ri.value.trim();
+  const ki = document.getElementById('keyinp'); if (ki) S.geminiKey = ki.value.trim();
+  S.smin = parseInt(document.getElementById('smin')?.value) || 50000;
+  S.smax = parseInt(document.getElementById('smax')?.value) || 200000;
+  const li = document.getElementById('locinp'); if (li) S.loc = li.value.trim();
+  updateKeyChip();
+  if (!S.geminiKey) { toast('Please add your free Gemini API key first.', 'var(--amber)'); return; }
+  if (!S.resume) { toast('Please paste or upload your resume.', 'var(--red)'); return; }
+  if (!S.role) { toast('Please enter your target job title.', 'var(--red)'); return; }
+  if (S.running) stopAgent(); else { startAgent(); go('dash'); }
+}
+
+/* ================================================================
+   AGENT
+================================================================ */
+function startAgent() {
+  S.running = true;
+  document.getElementById('dot').classList.add('on');
+  document.getElementById('stxt').textContent = 'Agent running';
+  const b = document.getElementById('agentBtn'); b.textContent = '⏹ Stop'; b.className = 'btn stop';
+  toast('Agent started — fetching real jobs for ' + S.role);
+  addLog(`Agent started — searching <strong>RemoteOK · Arbeitnow · The Muse</strong>`, 'g');
+  fetchAllJobs();
+}
+
+function stopAgent() {
+  S.running = false;
+  document.getElementById('dot').classList.remove('on');
+  document.getElementById('stxt').textContent = 'Agent paused';
+  const b = document.getElementById('agentBtn'); b.textContent = '▶ Start Agent'; b.className = 'btn go';
+  toast('Agent paused.', 'var(--amber)'); addLog('Agent paused', 'a');
+}
+
+/* ================================================================
+   GEMINI AI (FREE)
+================================================================ */
+async function callGemini(prompt, maxTokens = 1024) {
+  if (!S.geminiKey) throw new Error('No Gemini key configured.');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${S.geminiKey}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+    })
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    const msg = e.error?.message || 'Gemini API error ' + resp.status;
+    if (resp.status === 400) throw new Error('Invalid Gemini key. Check at aistudio.google.com.');
+    if (resp.status === 429) throw new Error('Rate limit hit — waiting 30 seconds…');
+    throw new Error(msg);
+  }
+  const d = await resp.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+}
+
+function pJSON(raw) {
+  return JSON.parse(raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim());
+}
+
+/* ================================================================
+   REAL JOB FETCHING
+================================================================ */
+
+// CORS proxies tried in order until one works
+const PROXIES = [
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+];
+
+async function fetchWithFallback(url) {
+  // 1. Try direct first (works if API supports CORS)
+  try {
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(7000) });
+    if (r.ok) return await r.json();
+  } catch (e) { /* fall through */ }
+  // 2. Try each CORS proxy
+  for (const mkProxy of PROXIES) {
+    try {
+      const r = await fetch(mkProxy(url), { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(12000) });
+      if (r.ok) return JSON.parse(await r.text());
+    } catch (e) { /* try next */ }
+  }
+  throw new Error('Fetch failed for ' + url + ' — check internet connection.');
+}
+
+async function fetchRemoteOK(keyword) {
+  addLog('Fetching from <strong>RemoteOK</strong>…', 'b');
+  try {
+    const data = await fetchWithFallback(`https://remoteok.com/api?tag=${encodeURIComponent(keyword)}`);
+    // First item is legal notice, skip it
+    const jobs = Array.isArray(data) ? data.slice(1) : [];
+    const mapped = jobs.slice(0, 25).map(j => ({
+      id: 'rok_' + j.id,
+      title: j.position || j.title || 'Unknown Role',
+      company: j.company || 'Company',
+      location: j.location || 'Remote',
+      salary: j.salary || formatSalaryRange(j.salary_min, j.salary_max),
+      description: stripHTML(j.description || '').slice(0, 600),
+      tags: (j.tags || []).slice(0, 6),
+      url: j.url || `https://remoteok.com/l/${j.id}`,
+      src: 'RemoteOK',
+      postedAt: j.date ? new Date(j.date * 1000).toLocaleDateString() : 'recent',
+      score: 0, state: 'new', analysis: null, cl: '', kw: []
+    }));
+    addLog(`RemoteOK: <strong>${mapped.length} jobs</strong> found`, 'g');
+    return mapped;
+  } catch (e) {
+    addLog('RemoteOK fetch failed: ' + e.message, 'r');
+    return [];
+  }
+}
+
+async function fetchArbeitnow(keyword) {
+  addLog('Fetching from <strong>Arbeitnow</strong>…', 'b');
+  try {
+    const data = await fetchWithFallback(`https://www.arbeitnow.com/api/job-board-api?search=${encodeURIComponent(keyword)}`);
+    const jobs = data?.data || [];
+    const mapped = jobs.slice(0, 25).map(j => ({
+      id: 'an_' + j.slug,
+      title: j.title || 'Unknown Role',
+      company: j.company_name || 'Company',
+      location: j.remote ? 'Remote' : (j.location || 'On-site'),
+      salary: '',
+      description: stripHTML(j.description || '').slice(0, 600),
+      tags: (j.tags || []).slice(0, 6),
+      url: j.url || `https://www.arbeitnow.com/jobs/${j.slug}`,
+      src: 'Arbeitnow',
+      postedAt: j.created_at ? new Date(j.created_at * 1000).toLocaleDateString() : 'recent',
+      score: 0, state: 'new', analysis: null, cl: '', kw: []
+    }));
+    addLog(`Arbeitnow: <strong>${mapped.length} jobs</strong> found`, 'g');
+    return mapped;
+  } catch (e) {
+    addLog('Arbeitnow fetch failed: ' + e.message, 'r');
+    return [];
+  }
+}
+
+async function fetchTheMuse(keyword) {
+  addLog('Fetching from <strong>The Muse</strong>…', 'b');
+  try {
+    const data = await fetchWithFallback(`https://www.themuse.com/api/public/jobs?category=${encodeURIComponent(keyword)}&page=1&descending=true`);
+    const jobs = data?.results || [];
+    const mapped = jobs.slice(0, 25).map(j => ({
+      id: 'muse_' + j.id,
+      title: j.name || 'Unknown Role',
+      company: j.company?.name || 'Company',
+      location: (j.locations || []).map(l => l.name).join(', ') || 'Various',
+      salary: '',
+      description: stripHTML(j.contents || '').slice(0, 600),
+      tags: (j.levels || []).map(l => l.name).concat((j.categories || []).map(c => c.name)).slice(0, 6),
+      url: j.refs?.landing_page || 'https://www.themuse.com/jobs',
+      src: 'TheMuse',
+      postedAt: j.publication_date ? new Date(j.publication_date).toLocaleDateString() : 'recent',
+      score: 0, state: 'new', analysis: null, cl: '', kw: []
+    }));
+    addLog(`The Muse: <strong>${mapped.length} jobs</strong> found`, 'g');
+    return mapped;
+  } catch (e) {
+    addLog('The Muse fetch failed: ' + e.message, 'r');
+    return [];
+  }
+}
+
+function stripHTML(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .replace(/\s{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function formatSalaryRange(min, max) {
+  if (!min && !max) return '';
+  const fmt = n => n >= 1000 ? '$' + Math.round(n / 1000) + 'k' : '$' + n;
+  if (min && max) return fmt(min) + '–' + fmt(max);
+  if (min) return fmt(min) + '+';
+  return 'Up to ' + fmt(max);
+}
+
+/* ================================================================
+   MAIN FETCH + PROCESS PIPELINE
+================================================================ */
+async function fetchAllJobs() {
+  // Filter out jobs that don't match role/location preferences
+  const keyword = S.role.split(' ').slice(-2).join(' '); // use last 2 words for search
+
+  const [remoteOK, arbeitnow, muse] = await Promise.all([
+    fetchRemoteOK(keyword),
+    fetchArbeitnow(keyword),
+    fetchTheMuse(keyword)
+  ]);
+
+  let all = [...remoteOK, ...arbeitnow, ...muse];
+
+  // Filter by role relevance (basic keyword match)
+  const roleWords = S.role.toLowerCase().split(' ').filter(w => w.length > 2);
+  all = all.filter(j => {
+    const txt = (j.title + ' ' + j.description + ' ' + j.tags.join(' ')).toLowerCase();
+    return roleWords.some(w => txt.includes(w));
+  });
+
+  // Remove duplicates by title+company
+  const seen = new Set();
+  all = all.filter(j => {
+    const key = (j.title + j.company).toLowerCase().replace(/\s/g, '');
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  // Limit to 30 jobs
+  all = all.slice(0, 30);
+
+  if (!all.length) {
+    addLog('No jobs found for "' + S.role + '" — try a broader title', 'a');
+    toast('No jobs found — try a broader title like "developer" or "designer"', 'var(--amber)');
+    return;
+  }
+
+  S.jobs = all;
+  document.getElementById('jb').textContent = all.length;
+  addLog(`Found <strong>${all.length} real jobs</strong> — starting AI scoring with Gemini…`, 'g');
+  toast(all.length + ' real jobs found — AI scoring now…');
+  if (S.page === 'jobs') draw('jobs');
+  if (S.page === 'dash') draw('dash');
+
+  await scoreAll();
+}
+
+async function scoreAll() {
+  // Score in batches to respect Gemini rate limit (15 req/min)
+  let count = 0;
+  for (const job of S.jobs) {
+    if (!S.running) break;
+    await scoreJob(job, true);
+    count++;
+    // Gemini free tier: 15 RPM — wait 5s every 10 jobs
+    if (count % 10 === 0) {
+      addLog('Rate limit pause (5s)…', 'a');
+      await wait(5000);
+    } else {
+      await wait(500);
+    }
+  }
+  if (S.running) addLog('All jobs scored. Go to <strong>Job Matches</strong> to apply.', 't');
+}
+
+async function scoreJob(job, auto = false) {
+  addLog(`Scoring: <strong>${job.title}</strong> at ${job.company} (${job.src})…`, 'b');
+  try {
+    const a = await getScore(job);
+    job.score = a.score; job.analysis = a;
+    if (S.page === 'jobs') draw('jobs');
+    if (S.page === 'dash') draw('dash');
+    if (auto && a.score >= S.thresh) {
+      addLog(`${a.score}% — writing cover letter for <strong>${job.company}</strong>…`, 'g');
+      await wait(800); // Small gap between API calls
+      const pkg = await getPkg(job, a);
+      job.cl = pkg.coverLetter || ''; job.kw = pkg.keywords || [];
+      logApp(job, a);
+    } else if (auto) {
+      addLog(`${a.score}% — below threshold, skipped <strong>${job.company}</strong>`, 'a');
+      job.state = 'skip';
+    }
+  } catch (err) {
+    if (err.message.includes('Rate limit')) {
+      addLog('Rate limit — waiting 30 seconds…', 'a');
+      await wait(30000);
+      await scoreJob(job, auto); // retry
+    } else {
+      addLog('Error on ' + job.company + ': ' + err.message, 'r');
+    }
+  }
+}
+
+async function getScore(job) {
+  const raw = await callGemini(
+`You are an expert ATS recruiter. Score how well this resume matches this job.
+
+RESUME (excerpt):
+${S.resume.slice(0, 2000)}
+
+JOB:
+Title: ${job.title} at ${job.company}
+Location: ${job.location}
+Description: ${job.description.slice(0, 500)}
+Tags/Skills: ${job.tags.join(', ')}
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"score":<integer 30-97 be realistic and specific>,"strengths":["exact matching point 1","exact matching point 2","exact matching point 3"],"gaps":["gap 1","gap 2"],"recommendation":"one honest sentence about fit"}`, 400);
+  return pJSON(raw);
+}
+
+async function getPkg(job, analysis) {
+  const raw = await callGemini(
+`Create a job application package for this candidate.
+
+APPLICANT RESUME:
+${S.resume.slice(0, 1500)}
+
+JOB:
+${job.title} at ${job.company} (${job.location})
+${job.description.slice(0, 400)}
+Skills needed: ${job.tags.join(', ')}
+Candidate strengths for this role: ${(analysis.strengths || []).join(', ')}
+
+Return ONLY valid JSON, no markdown:
+{"coverLetter":"3 paragraphs under 270 words, professional and warm, do NOT start with I am writing to express my interest, reference specific details from this exact job at ${job.company}, connect real experience from resume to role requirements, end with confident call to action","keywords":["keyword1","keyword2","keyword3","keyword4","keyword5"]}`, 900);
+  return pJSON(raw);
+}
+
+function logApp(job, analysis) {
+  const app = {
+    id: S.apps.length + 1, role: job.title, company: job.company, src: job.src,
+    loc: job.location, salary: job.salary, score: job.score, url: job.url,
+    date: fdt(Date.now()), ts: Date.now(), status: 'Package Ready',
+    hasCL: !!job.cl, cl: job.cl, kw: job.kw || [],
+    strengths: (analysis.strengths || []).join('; '),
+    gaps: (analysis.gaps || []).join('; '),
+    note: analysis.recommendation || '', jid: job.id
+  };
+  S.apps.push(app); job.state = 'ready';
+  document.getElementById('ab').textContent = S.apps.length;
+  addLog(`✓ Package ready: <strong>${job.title}</strong> at ${job.company} — ${job.score}%`, 'g');
+  if (S.page === 'apps') draw('apps');
+  if (S.page === 'dash') draw('dash');
+}
+
+/* ================================================================
+   JOBS VIEW
+================================================================ */
+function drawJobs() {
+  const f = S.jf;
+  let jj = [...S.jobs];
+  if (f === 'hi') jj = jj.filter(j => j.score >= 75);
+  else if (f === 'good') jj = jj.filter(j => j.score >= 55 && j.score < 75);
+  else if (f === 'ready') jj = jj.filter(j => j.state === 'ready');
+  else if (f === 'remoteok') jj = jj.filter(j => j.src === 'RemoteOK');
+  else if (f === 'arbeitnow') jj = jj.filter(j => j.src === 'Arbeitnow');
+  else if (f === 'muse') jj = jj.filter(j => j.src === 'TheMuse');
+  jj.sort((a, b) => b.score - a.score);
+
+  const bar = `<div class="fbar">
+    ${[['all', 'All (' + S.jobs.length + ')'], ['hi', '75%+ Match'], ['good', '55–75%'], ['ready', 'Package Ready'], ['remoteok', 'RemoteOK'], ['arbeitnow', 'Arbeitnow'], ['muse', 'The Muse']].map(([v, l]) =>
+      `<button class="ftag ${f === v ? 'on' : ''}" onclick="S.jf='${v}';draw('jobs')">${l}</button>`
+    ).join('')}
+  </div>`;
+
+  if (!S.jobs.length) return bar + `<div class="empty"><div class="ei">🔍</div><div class="et">No real jobs fetched yet</div><div class="es">Add your Gemini key and start the agent</div><br><button class="abtn" style="width:160px;margin:9px auto 0;display:block" onclick="go('setup')">⚙ Setup</button></div>`;
+  if (!jj.length) return bar + `<div class="empty"><div class="ei">0</div><div class="et">No jobs in this filter</div></div>`;
+
+  return bar + `<div class="jgrid">${jj.map(j => {
+    const lc = COL[Math.abs(j.id.toString().charCodeAt(0) + j.id.toString().charCodeAt(1)) % COL.length];
+    const s = j.score, mc = s >= 75 ? 'mhi' : s >= 55 ? 'mmd' : 'mlo';
+    const srcCol = SRC_COLORS[j.src] || 'var(--t3)';
+    return `<div class="jcard ${s >= 55 ? 'hi' : ''}">
+      <div class="jh">
+        <div class="jico" style="background:${lc.b};color:${lc.c}">${ini(j.company)}</div>
+        <div class="ji">
+          <div class="jtl">${j.title}</div>
+          <div class="jco">${j.company} · ${j.location}</div>
+        </div>
+        ${s === 0 ? `<div style="font-size:10px;color:var(--t3)">…</div>` : `<div class="mbadge ${mc}">${s}%</div>`}
+      </div>
+      <div class="jtags">
+        <span class="tag live" style="background:rgba(0,0,0,.2);color:${srcCol};border-color:${srcCol}30">● ${j.src}</span>
+        ${j.location ? `<span class="tag">📍 ${j.location}</span>` : ''}
+        ${j.salary ? `<span class="tag">💰 ${j.salary}</span>` : ''}
+        ${j.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
+      </div>
+      <div class="jdesc">${j.description}</div>
+      <div class="jrow">
+        ${j.state === 'ready' ? `<button class="abtn" onclick="openPkg('${j.id}')">📦 Open Apply Package</button>` :
+          j.state === 'skip' ? `<button class="abtn" style="background:var(--amber);color:var(--bg)" onclick="openJob('${j.id}')">Generate Anyway</button>` :
+          s === 0 ? `<button class="abtn" disabled><span class="spin"></span>AI Scoring…</button>` :
+          `<button class="abtn" onclick="openJob('${j.id}')">⚡ Generate Package</button>`}
+        <button class="dbtn" onclick="openJob('${j.id}')">Details</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function openJob(jid) {
+  const j = S.jobs.find(x => x.id === jid); if (!j) return;
+  document.getElementById('ov').style.display = 'flex';
+  document.getElementById('mtitle').textContent = j.title + ' · ' + j.company;
+  document.getElementById('mbody').innerHTML = `<div style="text-align:center;padding:36px"><span class="spin"></span><span style="color:var(--t2)"> AI analyzing match with Gemini…</span></div>`;
+
+  if (!j.analysis) {
+    try { j.analysis = await getScore(j); j.score = j.analysis.score; }
+    catch (e) { document.getElementById('mbody').innerHTML = `<div style="color:var(--red);padding:16px">Analysis failed: ${e.message}</div><div class="mbtns"><button class="mbtn no" onclick="closeModal()">Close</button></div>`; return; }
+  }
+  if (!j.cl) {
+    document.getElementById('mbody').innerHTML = `<div style="text-align:center;padding:36px"><span class="spin"></span><span style="color:var(--t2)"> Gemini writing your cover letter…</span></div>`;
+    try { const pkg = await getPkg(j, j.analysis); j.cl = pkg.coverLetter || ''; j.kw = pkg.keywords || []; }
+    catch (e) { j.cl = 'Cover letter generation failed: ' + e.message; j.kw = []; }
+  }
+  if (S.page === 'jobs') draw('jobs');
+
+  const s = j.score, sc = s >= 75 ? 'var(--g)' : s >= 55 ? 'var(--blue)' : 'var(--amber)';
+  const srcCol = SRC_COLORS[j.src] || 'var(--t3)';
+  document.getElementById('mbody').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span class="src-badge" style="color:${srcCol};background:${srcCol}18;border-color:${srcCol}30">● ${j.src}</span>
+      <span style="font-size:11px;color:var(--t2)">${j.location} · ${j.postedAt}</span>
+      <a href="${j.url}" target="_blank" style="margin-left:auto;font-size:11px;color:var(--blue)">View Real Listing ↗</a>
+    </div>
+    <div class="msec">
+      <div class="mst">Match Score</div>
+      <div class="sw"><span class="sbig" style="color:${sc}">${s}%</span><span class="srec">${j.analysis.recommendation || ''}</span></div>
+      <div class="sbar"><div class="sfill" style="width:${s}%;background:${sc}"></div></div>
+    </div>
+    <div class="g2" style="margin-bottom:11px">
+      <div><div class="mst">Strengths</div>${(j.analysis.strengths || []).map(x => `<div class="pt"><div class="pdot" style="background:var(--g)"></div><span style="color:var(--t2)">${x}</span></div>`).join('')}</div>
+      <div><div class="mst">Gaps</div>${(j.analysis.gaps || []).map(x => `<div class="pt"><div class="pdot" style="background:var(--amber)"></div><span style="color:var(--t2)">${x}</span></div>`).join('')}</div>
+    </div>
+    <div class="msec"><div class="mst">Tailored Cover Letter</div><div class="mbx" id="clpv">${j.cl}</div></div>
+    ${j.kw.length ? `<div class="msec"><div class="mst">Resume Keywords to Add</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">${j.kw.map(k => `<span class="tag" style="background:var(--glow);border-color:rgba(0,214,143,.2);color:var(--g)">${k}</span>`).join('')}</div></div>` : ''}
+    <div class="mbtns">
+      ${j.state === 'ready' ? `<button class="mbtn ok" onclick="openPkg('${j.id}');closeModal()">📦 Open Apply Package</button>` :
+        `<button class="mbtn ok" onclick="confirmPkg('${j.id}')">✓ Save Package & Log</button>`}
+      <button class="mbtn bl" onclick="copyTxt(document.getElementById('clpv').textContent,this)">📋 Copy Cover Letter</button>
+      <a href="${j.url}" target="_blank" class="mbtn bl" style="text-decoration:none">🔗 View Real Job ↗</a>
+      <button class="mbtn no" onclick="closeModal()">Close</button>
+    </div>`;
+}
+
+function confirmPkg(jid) {
+  const j = S.jobs.find(x => x.id === jid); if (!j || !j.analysis) return;
+  logApp(j, j.analysis); closeModal();
+  toast('Package saved — go to Applications!');
+  if (S.page === 'jobs') draw('jobs');
+}
+
+function openPkg(jid) {
+  const j = S.jobs.find(x => x.id === jid);
+  const app = S.apps.find(a => a.jid === jid);
+  if (!j && !app) return;
+  const cl = j?.cl || app?.cl || '';
+  const kw = (j?.kw || app?.kw || []).join(', ');
+  const url = j?.url || app?.url || '#';
+  const src = j?.src || app?.src || '';
+  const company = j?.company || app?.company || '';
+  const role = j?.title || app?.role || '';
+  const score = j?.score || app?.score || 0;
+  const srcCol = SRC_COLORS[src] || 'var(--t3)';
+
+  document.getElementById('ov').style.display = 'flex';
+  document.getElementById('mtitle').textContent = 'Apply: ' + role + ' at ' + company;
+  document.getElementById('mbody').innerHTML = `
+    <div class="pkg">
+      <div class="pkg-ttl">🚀 Apply Package — ${score}% Match <span class="src-badge" style="color:${srcCol};background:${srcCol}18;border-color:${srcCol}30;margin-left:6px">● ${src}</span></div>
+      <div class="pkg-step">
+        <div class="pkg-n">1</div>
+        <div class="pkg-t">Open the <strong>real job listing</strong> on ${src}</div>
+        <a href="${url}" target="_blank" class="pka ext">Open Real Job ↗</a>
+      </div>
+      <div class="pkg-step">
+        <div class="pkg-n">2</div>
+        <div class="pkg-t">Copy your <strong>tailored cover letter</strong> and paste into the application</div>
+        <button class="pka" onclick="copyTxt(${JSON.stringify(cl)},this)">📋 Copy Cover Letter</button>
+      </div>
+      ${kw ? `<div class="pkg-step">
+        <div class="pkg-n">3</div>
+        <div class="pkg-t">Add these <strong>AI-suggested keywords</strong> to your resume before uploading: <em style="color:var(--t1)">${kw}</em></div>
+        <button class="pka" onclick="copyTxt(${JSON.stringify(kw)},this)">📋 Copy</button>
+      </div>` : ''}
+      <div class="pkg-step">
+        <div class="pkg-n">${kw ? 4 : 3}</div>
+        <div class="pkg-t">After submitting, update your <strong>status</strong> in Applications</div>
+        <button class="pka" onclick="go('apps');closeModal()">Tracker →</button>
+      </div>
+    </div>
+    <div class="msec"><div class="mst">Cover Letter</div><div class="mbx">${cl || 'No cover letter generated yet.'}</div></div>
+    <div class="mbtns">
+      <a href="${url}" target="_blank" class="mbtn ok" style="text-decoration:none">🔗 Open Real Job on ${src}</a>
+      <button class="mbtn bl" onclick="copyTxt(${JSON.stringify(cl)},this)">📋 Copy Cover Letter</button>
+      <button class="mbtn no" onclick="closeModal()">Close</button>
+    </div>`;
+}
+
+/* ================================================================
+   APPLICATIONS
+================================================================ */
+function drawApps() {
+  if (!S.apps.length) return `<div class="empty"><div class="ei">📋</div><div class="et">No applications yet</div><div class="es">Agent logs an entry here for every matched job package</div></div>`;
+  const f = S.af;
+  const statuses = ['all', 'Package Ready', 'Applied', 'Interview', 'Offer', 'Rejected'];
+  const list = f === 'all' ? S.apps : S.apps.filter(a => a.status === f);
+  return `
+  <div class="fbar">${statuses.map(s => `<button class="ftag ${f === s ? 'on' : ''}" onclick="S.af='${s}';draw('apps')">${s === 'all' ? 'All (' + S.apps.length + ')' : s + ' (' + S.apps.filter(a => a.status === s).length + ')'}</button>`).join('')}</div>
+  <div class="card" style="padding:0">
+    <div class="tw">
+      <table>
+        <thead><tr><th>#</th><th>Role</th><th>Company</th><th>Source</th><th>Match</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${list.map(a => `<tr>
+            <td class="tmono" style="color:var(--t3);font-size:10px">#${a.id}</td>
+            <td class="tbold">${a.role}</td>
+            <td>${a.company}</td>
+            <td><span style="font-size:10px;color:${SRC_COLORS[a.src] || 'var(--t3)'}">${a.src}</span></td>
+            <td class="${a.score >= 75 ? 'shi' : 'smd'}">${a.score}%</td>
+            <td class="tmono" style="font-size:10px;color:var(--t3)">${a.date}</td>
+            <td><select onchange="setStatus(${a.id},this.value)" style="background:var(--card2);border:1px solid var(--b2);border-radius:5px;color:var(--t1);font-size:11px;padding:2px 5px;font-family:var(--f);cursor:pointer;outline:none">
+              ${['Package Ready', 'Applied', 'Interview', 'Offer', 'Rejected'].map(s => `<option ${a.status === s ? 'selected' : ''} value="${s}">${s}</option>`).join('')}
+            </select></td>
+            <td style="display:flex;gap:5px">
+              <span class="tl" onclick="viewApp(${a.id})">View</span>
+              <span class="tl" onclick="openPkg('${a.jid || ''}')">Apply</span>
+              <a href="${a.url || '#'}" target="_blank" class="tl">Live ↗</a>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="infonote" style="margin-top:9px"><strong>Workflow:</strong> Click <strong>Apply</strong> to open your package → copy cover letter → click <strong>Live ↗</strong> to open the real job listing → submit → change status to <strong>Applied</strong>.</div>`;
+}
+
+function setStatus(id, st) {
+  const a = S.apps.find(x => x.id === id); if (!a) return;
+  a.status = st;
+  const col = { Interview: 'b', Offer: 'g', Rejected: 'r', Applied: 'a', 'Package Ready': 't' }[st] || 'a';
+  addLog(`Status: <strong>${a.role}</strong> at ${a.company} → ${st}`, col);
+}
+
+function viewApp(id) {
+  const a = S.apps.find(x => x.id === id); if (!a) return;
+  document.getElementById('ov').style.display = 'flex';
+  document.getElementById('mtitle').textContent = a.role + ' · ' + a.company;
+  const srcCol = SRC_COLORS[a.src] || 'var(--t3)';
+  document.getElementById('mbody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px">
+      ${[['Source', `<span style="color:${srcCol}">${a.src}</span>`], ['Match Score', a.score + '%'], ['Location', a.loc || '—'], ['Salary', a.salary || '—'], ['Date', a.date], ['Status', a.status]].map(([l, v]) =>
+        `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:6px;padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:600;color:var(--t1)">${v}</div></div>`
+      ).join('')}
+    </div>
+    ${a.strengths ? `<div class="msec"><div class="mst">Why You Match</div><div style="font-size:12px;color:var(--t2);line-height:1.5">${a.strengths}</div></div>` : ''}
+    ${a.kw?.length ? `<div class="msec"><div class="mst">Keywords to Add</div><div style="display:flex;flex-wrap:wrap;gap:4px">${a.kw.map(k => `<span class="tag" style="background:var(--glow);border-color:rgba(0,214,143,.2);color:var(--g)">${k}</span>`).join('')}</div></div>` : ''}
+    ${a.cl ? `<div class="msec"><div class="mst">Cover Letter</div><div class="mbx">${a.cl}</div></div>` : ''}
+    <div class="mbtns">
+      <button class="mbtn ok" onclick="openPkg('${a.jid || ''}');closeModal()">🚀 Open Apply Package</button>
+      ${a.cl ? `<button class="mbtn bl" onclick="copyTxt(${JSON.stringify(a.cl)},this)">📋 Copy Cover Letter</button>` : ''}
+      <a href="${a.url || '#'}" target="_blank" class="mbtn bl" style="text-decoration:none">🔗 View Real Job</a>
+      <button class="mbtn no" onclick="closeModal()">Close</button>
+    </div>`;
+}
+
+/* ================================================================
+   EXCEL EXPORT
+================================================================ */
+function drawXls() {
+  const n = S.apps.length, has = n > 0, avg = has ? Math.round(S.apps.reduce((s, a) => s + a.score, 0) / n) : 0;
+  const prev = S.apps.slice(-5).reverse();
+  return `
+  <div class="card" style="margin-bottom:9px">
+    <div class="ct">Export Preview — ${n} applications</div>
+    ${has ? `<div class="tw" style="margin-bottom:7px"><table>
+      <thead><tr><th>#</th><th>Role</th><th>Company</th><th>Source</th><th>Match</th><th>Date</th><th>Status</th></tr></thead>
+      <tbody>${prev.map(a => `<tr>
+        <td class="tmono" style="font-size:10px;color:var(--t3)">#${a.id}</td>
+        <td class="tbold">${a.role}</td><td>${a.company}</td>
+        <td style="color:${SRC_COLORS[a.src] || 'var(--t3)'}">${a.src}</td>
+        <td class="${a.score >= 75 ? 'shi' : 'smd'}">${a.score}%</td>
+        <td class="tmono" style="font-size:10px">${a.date}</td>
+        <td><span class="badge ${(a.status || '').toLowerCase().replace(/ /g, '')}">${a.status}</span></td>
+      </tr>`).join('')}</tbody></table></div>
+      ${n > 5 ? `<div style="text-align:center;font-size:11px;color:var(--t3)">…and ${n - 5} more rows</div>` : ''}` :
+      `<div class="empty" style="padding:28px"><div class="ei">📊</div><div class="et">No data yet</div><div class="es">Start the agent and generate packages first</div></div>`}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
+    ${[['Total', n, 'cg'], ['Interviews', S.apps.filter(a => a.status === 'Interview').length, 'cb'], ['Offers', S.apps.filter(a => a.status === 'Offer').length, 'cp'], ['Avg Match', avg ? avg + '%' : '—', 'ca']].map(([l, v, c]) => `<div class="stat"><div class="sn ${c}">${v}</div><div class="slbl">${l}</div></div>`).join('')}
+  </div>
+  <button class="xbtn" id="xbtn" onclick="doExport()" ${!has ? 'disabled' : ''}>⬇ Download Excel — ${n} Applications</button>
+  <div style="margin-top:7px;font-size:11px;color:var(--t3);text-align:center;line-height:1.5">
+    Columns: Role · Company · Source · Match % · Date · Status · Cover Letter · Keywords · Strengths · Gaps<br>
+    Generated in browser — nothing uploaded.
+  </div>`;
+}
+
+function doExport() {
+  if (!S.apps.length) { toast('No applications yet.', 'var(--amber)'); return; }
+  const btn = document.getElementById('xbtn');
+  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  try {
+    if (typeof XLSX === 'undefined') throw new Error('XLSX library not loaded — check internet connection.');
+    const wb = XLSX.utils.book_new();
+    const rows = S.apps.map(a => ({
+      'ID': a.id, 'Job Title': a.role, 'Company': a.company, 'Source': a.src,
+      'Location': a.loc || '', 'Salary': a.salary || '', 'Match Score (%)': a.score,
+      'Date': a.date, 'Status': a.status, 'Job URL': a.url || '',
+      'Cover Letter Used': a.hasCL ? 'Yes' : 'No',
+      'Resume Keywords': (a.kw || []).join(', '),
+      'Match Strengths': a.strengths || '', 'Gaps': a.gaps || '',
+      'AI Recommendation': a.note || '', 'Cover Letter Text': a.cl || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 12 }, { wch: 14 }, { wch: 35 }, { wch: 17 }, { wch: 30 }, { wch: 50 }, { wch: 40 }, { wch: 40 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Applications');
+    const sum = [
+      { Metric: 'Total Applications', Value: S.apps.length },
+      { Metric: 'Applied', Value: S.apps.filter(a => a.status === 'Applied').length },
+      { Metric: 'Interviews', Value: S.apps.filter(a => a.status === 'Interview').length },
+      { Metric: 'Offers', Value: S.apps.filter(a => a.status === 'Offer').length },
+      { Metric: 'Rejected', Value: S.apps.filter(a => a.status === 'Rejected').length },
+      { Metric: 'Avg Match Score', Value: (S.apps.length ? Math.round(S.apps.reduce((s, a) => s + a.score, 0) / S.apps.length) : 0) + '%' },
+      { Metric: 'Target Role', Value: S.role },
+      { Metric: 'Sources Used', Value: [...new Set(S.apps.map(a => a.src))].join(', ') },
+      { Metric: 'Export Date', Value: new Date().toLocaleDateString() }
+    ];
+    const ws2 = XLSX.utils.json_to_sheet(sum); ws2['!cols'] = [{ wch: 22 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+    const fname = 'AutoApply_' + (S.role || 'jobs').replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    XLSX.writeFile(wb, fname);
+    toast('Excel downloaded: ' + fname);
+    addLog('Excel exported: ' + fname, 't');
+  } catch (err) {
+    toast('Export failed: ' + err.message, 'var(--red)'); console.error(err);
+  } finally {
+    if (btn) { btn.textContent = '⬇ Download Excel — ' + S.apps.length + ' Applications'; btn.disabled = false; }
+  }
+}
+
+/* ================================================================
+   MODAL
+================================================================ */
+function closeBg(e) { if (e.target === document.getElementById('ov')) closeModal(); }
+function closeModal() { document.getElementById('ov').style.display = 'none'; }
+
+/* ================================================================
+   AGENT TOGGLE
+================================================================ */
+function toggleAgent() {
+  if (!S.running) {
+    if (!S.geminiKey) { toast('Add your free Gemini API key first.', 'var(--amber)'); go('setup'); return; }
+    if (!S.resume) { toast('Add your resume first.', 'var(--amber)'); go('setup'); return; }
+    if (!S.role) { toast('Enter your target job title.', 'var(--amber)'); go('setup'); return; }
+    startAgent(); go('dash');
+  } else stopAgent();
+}
+
+/* ================================================================
+   BOOT
+================================================================ */
+addLog('AutoApply AI ready — go to <strong>Setup</strong> to add your free Gemini key and start.', 't');
+go('dash');
+</script>
+</body>
+</html>
